@@ -23,13 +23,15 @@ info["NSAppTransportSecurity"] = {"NSAllowsArbitraryLoads": Foundation.YES}
 
 class BrowserView:
     instances = []
-    active_instances = 0
     cascade_loc = Foundation.NSMakePoint(140.0, 0.0)
     app = AppKit.NSApplication.sharedApplication()
 
     class AppDelegate(AppKit.NSObject):
         def applicationDidFinishLaunching_(self, notification):
             BrowserView.instances[0].webview_ready.set()
+
+        def applicationShouldTerminateAfterLastWindowClosed_(self, sender):
+            return Foundation.YES
 
     class WindowDelegate(AppKit.NSObject):
         def display_confirmation_dialog(self):
@@ -53,11 +55,11 @@ class BrowserView:
                 return Foundation.NO
 
         def windowWillClose_(self, notification):
-            BrowserView.active_instances -= 1
-
-            # Quit app when the last window is destroyed
-            if BrowserView.active_instances <= 0:
-                BrowserView.app.stop_(self)
+            # Delete the closed instance from the list
+            for i in BrowserView.instances:
+                if i.window is notification.object():
+                    BrowserView.instances.remove(i)
+                    return
 
     class BrowserDelegate(AppKit.NSObject):
         def webView_contextMenuItemsForElement_defaultMenuItems_(self, webview, element, defaultMenuItems):
@@ -158,6 +160,15 @@ class BrowserView:
             new_browser.show()
             return new_browser.webkit
 
+        # WebFrameLoadDelegate method, invoked when the page title of a frame loads or changes
+        def webView_didReceiveTitle_forFrame_(self, webview, title, frame):
+            parent_window = webview.window()
+
+            # If the window has no title (e.g. it was opened by JS), use the
+            # HTML page <title> as the window title
+            if parent_window and not parent_window.title() and frame is webview.mainFrame():
+                parent_window.setTitle_(title)
+
 
     class WebKitHost(WebKit.WebView):
         def performKeyEquivalent_(self, theEvent):
@@ -212,18 +223,20 @@ class BrowserView:
         if resizable:
             window_mask = window_mask | AppKit.NSResizableWindowMask
 
+        # The allocated resources are retained because we would explicitly delete
+        # this instance when its window is closed
         self.window = AppKit.NSWindow.alloc().\
-            initWithContentRect_styleMask_backing_defer_(rect, window_mask, AppKit.NSBackingStoreBuffered, False)
+            initWithContentRect_styleMask_backing_defer_(rect, window_mask, AppKit.NSBackingStoreBuffered, False).retain()
         self.window.setTitle_(title)
         self.window.setMinSize_(AppKit.NSSize(min_size[0], min_size[1]))
         BrowserView.cascade_loc = self.window.cascadeTopLeftFromPoint_(BrowserView.cascade_loc)
 
-        self.webkit = BrowserView.WebKitHost.alloc().initWithFrame_(rect)
+        self.webkit = BrowserView.WebKitHost.alloc().initWithFrame_(rect).retain()
         self.window.setContentView_(self.webkit)
 
-        self._browserDelegate = BrowserView.BrowserDelegate.alloc().init()
-        self._windowDelegate = BrowserView.WindowDelegate.alloc().init()
-        self._appDelegate = BrowserView.AppDelegate.alloc().init()
+        self._browserDelegate = BrowserView.BrowserDelegate.alloc().init().retain()
+        self._windowDelegate = BrowserView.WindowDelegate.alloc().init().retain()
+        self._appDelegate = BrowserView.AppDelegate.alloc().init().retain()
         self.webkit.setUIDelegate_(self._browserDelegate)
         self.webkit.setFrameLoadDelegate_(self._browserDelegate)
         self.webkit.setPolicyDelegate_(self._browserDelegate)
@@ -236,24 +249,23 @@ class BrowserView:
 
         # Add the default Cocoa application menu
         # We need to call these only once, during the app startup
-        if not BrowserView.active_instances:
+        if not BrowserView.app.isRunning():
             self._add_app_menu()
             self._add_view_menu()
 
         if fullscreen:
             self.toggle_fullscreen()
 
-        BrowserView.active_instances += 1
-
     def show(self):
         self.window.display()
         self.window.makeKeyAndOrderFront_(self.window)
+
         if not BrowserView.app.isRunning():
             BrowserView.app.activateIgnoringOtherApps_(Foundation.YES)
             BrowserView.app.run()
 
     def destroy(self):
-        BrowserView.app.stop_(self)
+        PyObjCTools.AppHelper.callAfter(self.window.close)
 
     def toggle_fullscreen(self):
         def toggle():
@@ -424,7 +436,7 @@ class BrowserView:
         key_window = AppKit.NSApp.keyWindow()
 
         for i in BrowserView.instances:
-            if i.window and i.window is key_window:
+            if i.window is key_window:
                 return i
         else:
             return None
