@@ -190,7 +190,7 @@ class BrowserView(QMainWindow):
         self.fullscreen_trigger.emit()
 
 
-def create_window(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
+def create_window(name, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
     app = QApplication([])
 
     browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready)
@@ -198,23 +198,23 @@ def create_window(title, url, width, height, resizable, fullscreen, min_size, co
     app.exec_()
 
 
-def get_current_url():
+def get_current_url(name):
     return BrowserView.instance.get_current_url()
 
 
-def load_url(url):
+def load_url(url, name):
     BrowserView.instance.load_url(url)
 
 
-def load_html(content, base_uri):
+def load_html(content, base_uri, name):
     BrowserView.instance.load_html(content, base_uri)
 
 
-def destroy_window():
+def destroy_window(name):
     BrowserView.instance.destroy_()
 
 
-def toggle_fullscreen():
+def toggle_fullscreen(name):
     BrowserView.instance.toggle_fullscreen()
 
 

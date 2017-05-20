@@ -133,35 +133,37 @@ def create_file_dialog(dialog_type=OPEN_DIALOG, directory='', allow_multiple=Fal
         raise Exception("Create a web view window first, before invoking this function")
 
 
-def load_url(url):
+def load_url(url, name=''):
     """
     Load a new URL into a previously created WebView window. This function must be invoked after WebView windows is
     created with create_window(). Otherwise an exception is thrown.
     :param url: url to load
+    :param name: name of the window
     """
     try:
         _webview_ready.wait(5)
-        gui.load_url(url)
+        gui.load_url(url, name)
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
 
 
-def load_html(content, base_uri=""):
+def load_html(content, base_uri="", name=''):
     """
     Load a new content into a previously created WebView window. This function must be invoked after WebView windows is
     created with create_window(). Otherwise an exception is thrown.
     :param content: Content to load.
     :param base_uri: Base URI for resolving links. Default is "".
+    :param name: name of the window
     """
     try:
         _webview_ready.wait(5)
-        gui.load_html(_make_unicode(content), base_uri)
+        gui.load_html(_make_unicode(content), base_uri, name)
     except NameError as e:
         raise Exception("Create a web view window first, before invoking this function")
 
 
 def create_window(title, url=None, width=800, height=600,
-                  resizable=True, fullscreen=False, min_size=(200, 100), strings={}, confirm_quit=False):
+                  resizable=True, fullscreen=False, min_size=(200, 100), strings={}, confirm_quit=False, name=''):
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
     program logic must be executed in a separate thread.
@@ -173,42 +175,46 @@ def create_window(title, url=None, width=800, height=600,
     :param fullscreen: True if start in fullscreen mode. Default is False
     :param min_size: a (width, height) tuple that specifies a minimum window size. Default is 200x100
     :param strings: a dictionary with localized strings
+    :param name: name of the window, to refer the window in both Python and JS
     :return:
     """
     _initialize_imports()
     localization.update(strings)
-    gui.create_window(_make_unicode(title), _transform_url(url), width, height, resizable, fullscreen, min_size, confirm_quit, _webview_ready)
+    gui.create_window(name, _make_unicode(title), _transform_url(url), width, height, resizable, fullscreen, min_size, confirm_quit, _webview_ready)
 
 
-def get_current_url():
+def get_current_url(name=''):
     """
     Get a current URL
+    :param name: name of the window
     """
     try:
         _webview_ready.wait(5)
-        return gui.get_current_url()
+        return gui.get_current_url(name)
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
 
 
-def destroy_window():
+def destroy_window(name=''):
     """
     Destroy a web view window
+    :param name: name of the window
     """
     try:
         _webview_ready.wait(5)
-        gui.destroy_window()
+        gui.destroy_window(name)
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
 
 
-def toggle_fullscreen():
+def toggle_fullscreen(name=''):
     """
     Toggle fullscreen mode
+    :param name: name of the window
     """
     try:
         _webview_ready.wait(5)
-        gui.toggle_fullscreen()
+        gui.toggle_fullscreen(name)
     except NameError:
         raise Exception("Create a web view window first, before invoking this function")
 

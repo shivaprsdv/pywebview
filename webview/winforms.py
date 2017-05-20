@@ -222,7 +222,7 @@ class BrowserView:
         self.browser.toggle_fullscreen()
 
 
-def create_window(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
+def create_window(name, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready):
     set_ie_mode()
     browser_view = BrowserView(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, webview_ready)
     browser_view.show()
@@ -232,21 +232,21 @@ def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
     return BrowserView.instance.create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
 
 
-def get_current_url():
+def get_current_url(name):
     return BrowserView.instance.get_current_url()
 
 
-def load_url(url):
+def load_url(url, name):
     BrowserView.instance.load_url(url)
 
 
-def load_html(content, base_uri):
+def load_html(content, base_uri, name):
     BrowserView.instance.load_html(content)
 
 
-def toggle_fullscreen():
+def toggle_fullscreen(name):
     BrowserView.instance.toggle_fullscreen()
 
 
-def destroy_window():
+def destroy_window(name):
     BrowserView.instance.destroy()

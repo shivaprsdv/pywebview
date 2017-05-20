@@ -153,12 +153,20 @@ class BrowserView:
             # :url is intentionally empty as we don't want BrowserView.__init__()
             # to load any url
             new_browser = BrowserView(
-                    title='', url='', width=800, height=600,
+                    name='', title='', url='', width=800, height=600,
                     resizable=True, fullscreen=False,
                     min_size=(200,100), webview_ready=None
                     )
-            new_browser.show()
             return new_browser.webkit
+
+        # Show the newly created window
+        def webViewShow_(self, webview):
+            # Get the JS name for the window and set it as the new instance's name
+            name = webview.windowScriptObject().valueForKey_('name')
+            new_browser = BrowserView.instances[-1]
+            new_browser.name = name
+
+            new_browser.show()
 
         # WebFrameLoadDelegate method, invoked when the page title of a frame loads or changes
         def webView_didReceiveTitle_forFrame_(self, webview, title, frame):
@@ -208,8 +216,9 @@ class BrowserView:
 
                     return handled
 
-    def __init__(self, title, url, width, height, resizable, fullscreen, min_size, webview_ready):
+    def __init__(self, name, title, url, width, height, resizable, fullscreen, min_size, webview_ready):
         BrowserView.instances.append(self)
+        self.name = name
 
         self._file_name = None
         self._file_name_semaphor = threading.Semaphore(0)
@@ -428,56 +437,61 @@ class BrowserView:
         return val
 
     @staticmethod
-    def get_key_instance():
+    def get_instance(name):
         """
-        Return the BrowserView instance that currently has focus
-        If no window has focus, return None
-        """
-        key_window = AppKit.NSApp.keyWindow()
+        Return a BrowserView instance by its name attribute. Return None if no
+        match is found.
 
-        for i in BrowserView.instances:
-            if i.window is key_window:
-                return i
+        If name is None/empty string, and there is only one instance running,
+        return that (so that single-window applications can omit the name).
+
+        :param name: The name of the target instance
+        """
+        if name:
+            return next((i for i in BrowserView.instances if i.name == name), None)
+        elif len(BrowserView.instances) == 1:
+            return BrowserView.instances[0]
         else:
             return None
 
 
-def create_window(title, url, width, height, resizable, fullscreen, min_size, confirm_quit, ready_event):
-    """
-    Create a WebView window using Cocoa on Mac.
-    :param title: Window title
-    :param url: URL to load
-    :param width: Window width
-    :param height: Window height
-    :param resizable True if window can be resized, False otherwise
-    :return:
-    """
+def create_window(name, title, url, width, height, resizable, fullscreen, min_size, confirm_quit, ready_event):
     global _confirm_quit
     _confirm_quit = confirm_quit
 
-    browser = BrowserView(title, url, width, height, resizable, fullscreen, min_size, ready_event)
+    browser = BrowserView(name, title, url, width, height, resizable, fullscreen, min_size, ready_event)
+    browser.webkit.windowScriptObject().setValue_forKey_(name, 'name') # Set JS window.name
     browser.show()
 
 
 def create_file_dialog(dialog_type, directory, allow_multiple, save_filename):
-    return BrowserView.get_key_instance().create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
+    return BrowserView.instances[0].create_file_dialog(dialog_type, directory, allow_multiple, save_filename)
 
 
-def load_url(url):
-    BrowserView.get_key_instance().load_url(url)
+def load_url(url, name):
+    i = BrowserView.get_instance(name)
+    if i:
+        i.load_url(url)
 
 
-def load_html(content, base_uri):
-    BrowserView.get_key_instance().load_html(content, base_uri)
+def load_html(content, base_uri, name):
+    i = BrowserView.get_instance(name)
+    if i:
+        i.load_html(content, base_uri)
 
 
-def destroy_window():
-    BrowserView.get_key_instance().destroy()
+def destroy_window(name):
+    i = BrowserView.get_instance(name)
+    if i:
+        i.destroy()
 
 
-def toggle_fullscreen():
-    BrowserView.get_key_instance().toggle_fullscreen()
+def toggle_fullscreen(name):
+    i = BrowserView.get_instance(name)
+    if i:
+        i.toggle_fullscreen()
 
 
-def get_current_url():
-    return BrowserView.get_key_instance().get_current_url()
+def get_current_url(name):
+    i = BrowserView.get_instance(name)
+    return i.get_current_url() if i else None
