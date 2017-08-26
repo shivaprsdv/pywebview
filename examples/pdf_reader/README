@@ -1,0 +1,12 @@
+This example demonstrates creating a simple PDF reader application by combining
+the popular PDF.js tool by Mozilla, and Pywebview. The result is a
+cross-platform PDF reader with virtually no code.
+
+The build and web directories contain the pre-built components of PDF.js. The
+LICENSE file is the Apache license of the same. To run the example, execute
+app.py from the root directory (i.e. the same directory as this file resides
+in).
+
+
+Pre-built version of PDF.js downloaded from: https://mozilla.github.io/pdf.js/
+is provided "as is". Licensed under Apache.
